@@ -9,6 +9,18 @@ fs.readdir(path.join(__dirname, 'project-dist'), (err) => {
         fs.mkdir(path.join(__dirname, 'project-dist'), (err) => {
             if (err) {
                 console.log(err);
+            } else {
+                fs.readdir(path.join(path.join(__dirname, 'project-dist'), 'assets'), (err) => {
+                    if (err) {
+                        fs.mkdir(path.join(path.join(__dirname, 'project-dist'), 'assets'), (err) => {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                copyFolder(path.join(__dirname, 'assets'), path.join(path.join(__dirname, 'project-dist'), 'assets'));
+                            }
+                        })
+                    }
+                })
             }
         })
     }
@@ -48,6 +60,35 @@ fs.readdir(path.join(__dirname, 'project-dist'), (err) => {
     });
 }());
 
+fs.writeFile(path.join(path.join(__dirname, 'project-dist'), 'styles.css'), '', { encoding: "utf8" }, (err) => {
+    if (err) {}
+});
+
+fs.readdir(path.join(__dirname, 'styles'), (err, files) => {
+    if (err) {
+        console.log(err);
+    } else {
+        files.forEach((file) => {
+            fs.stat(path.join(path.join(__dirname, 'styles'), file), (err, stats) => {
+                if (err) {
+                    console.error(`Error getting file stats: ${err}`);
+                } else {
+                    if (stats.isFile() && path.extname(file).slice(1) === 'css') {
+                        const myStream = fs.createReadStream(path.join(path.join(__dirname, 'styles'), file), { encoding: "utf8" });
+                        myStream.on("data", (text) => {
+                            fs.appendFile(path.join(path.join(__dirname, 'project-dist'), 'styles.css'), text + '\n', { encoding: "utf8" }, (err) => {
+                                if (err) {
+                                    console.log(`Error: ${err}`);
+                                }
+                            })
+                        });
+                    }
+                }
+            });
+        });
+    }
+});
+
 function replaseStr(str) {
     if(arrNames.length === 3) {
         const replace1 = str.replace(/{{articles}}/g, arrText[0]);
@@ -63,4 +104,41 @@ function replaseStr(str) {
         return replace4;
     }
 };
+
+function copyFolder(source, target) {
+    fs.mkdir(target, { recursive: true }, (err) => {
+        if (err) {
+            console.log(err);
+        } else {
+            fs.readdir(source, (err, files) => {
+                if (err) {
+                    console.log(err);
+                } else {
+                    const copyFile = (file) => {
+                        fs.stat(path.join(source, file), (err, stats) => {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                if (stats.isDirectory()) {
+                                    copyFolder(path.join(source, file), path.join(target, file), (err) => {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                    });
+                                } else {
+                                    fs.copyFile(path.join(source, file), path.join(target, file), (err) => {
+                                        if (err) {
+                                            console.log(err);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    };
+                    files.forEach(copyFile);
+                }
+            });
+        }
+    });
+}
 // node 06-build-page
